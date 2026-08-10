@@ -1,50 +1,115 @@
-/**
- * API client. Uses in-browser mock handlers by default.
- * Set NEXT_PUBLIC_API_URL to your Laravel base (e.g. http://localhost:8000/api)
- * to switch to real REST later — keep the same function signatures in lib/api/*.
- */
+import { ApiError, type ApiEnvelope } from "@/lib/types/api";
 
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 export const USE_MOCK = !API_BASE;
 
-export class ApiRequestError extends Error {
-  status: number;
+export const APP_ACCESS_KEY =
+  process.env.NEXT_PUBLIC_APP_ACCESS_KEY ?? "73647874537947434";
 
-  constructor(message: string, status = 400) {
-    super(message);
-    this.name = "ApiRequestError";
-    this.status = status;
+function parseRetryAfter(response: Response, body: ApiEnvelope): number | null {
+  const header = response.headers.get("Retry-After");
+  if (header && !Number.isNaN(Number(header))) return Number(header);
+  const match = body.message?.match(/(\d+)\s*second/i);
+  if (match) return Number(match[1]);
+  return null;
+}
+
+function normalizeErrors(data: ApiEnvelope["data"]): string[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data.map(String);
+  if (typeof data === "object") {
+    return Object.values(data)
+      .flatMap((value) => (Array.isArray(value) ? value : [value]))
+      .map(String);
   }
+  return [];
 }
 
 export async function apiFetch<T>(
   path: string,
   options: RequestInit & { token?: string | null } = {},
 ): Promise<T> {
-  if (USE_MOCK) {
-    throw new ApiRequestError(
-      "Mock mode: call domain helpers in lib/api instead of apiFetch",
-    );
-  }
-
   const { token, headers, ...rest } = options;
   const response = await fetch(`${API_BASE}${path}`, {
     ...rest,
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      "x-access-key": APP_ACCESS_KEY,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
   });
 
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new ApiRequestError(
-      data.message || "Request failed",
-      response.status,
-    );
+  const body = (await response.json().catch(() => ({
+    status: 0,
+    message: "Unexpected server response",
+  }))) as ApiEnvelope<T>;
+
+  if (response.status === 429) {
+    throw new ApiError(body.message || "Too many attempts. Please try again later.", {
+      status: 429,
+      retryAfter: parseRetryAfter(response, body),
+    });
   }
-  return data as T;
+
+  if (!response.ok) {
+    throw new ApiError(body.message || "Request failed", {
+      status: response.status,
+      errors: normalizeErrors(body.data),
+      retryAfter: parseRetryAfter(response, body),
+    });
+  }
+
+  // Laravel CommonHelper often returns HTTP 200 with status: 0 for business errors.
+  if (body.status === 0) {
+    throw new ApiError(body.message || "Request failed", {
+      status: response.status,
+      errors: normalizeErrors(body.data),
+      retryAfter: parseRetryAfter(response, body),
+    });
+  }
+
+  return (body.data ?? body) as T;
+}
+
+export async function apiMessage(
+  path: string,
+  options: RequestInit & { token?: string | null } = {},
+): Promise<string> {
+  const { token, headers, ...rest } = options;
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...rest,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "x-access-key": APP_ACCESS_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+  });
+
+  const body = (await response.json().catch(() => ({
+    status: 0,
+    message: "Unexpected server response",
+  }))) as ApiEnvelope;
+
+  if (response.status === 429) {
+    throw new ApiError(body.message || "Too many attempts. Please try again later.", {
+      status: 429,
+      retryAfter: parseRetryAfter(response, body),
+    });
+  }
+
+  if (!response.ok || body.status === 0) {
+    throw new ApiError(body.message || "Request failed", {
+      status: response.status,
+      errors: normalizeErrors(body.data),
+      retryAfter: parseRetryAfter(response, body),
+    });
+  }
+
+  return body.message || "Success";
 }

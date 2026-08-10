@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
   return (
     <AuthCard
       title="Forgot password"
-      subtitle="We'll issue a reset token (demo mode — no email)."
+      subtitle="We’ll email a verification code if the account exists."
     >
       <ForgotPasswordForm />
     </AuthCard>

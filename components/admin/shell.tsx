@@ -31,7 +31,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   async function handleLogout() {
     await logout();
-    router.push("/login");
+    router.push("/admin/login");
   }
 
   return (

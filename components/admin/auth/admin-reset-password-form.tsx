@@ -6,17 +6,14 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { customerLogin } from "@/lib/api/customer-auth";
+import { adminResetPassword } from "@/lib/api/admin-auth";
 import { formatApiError, useRateLimit } from "@/lib/hooks/use-rate-limit";
-import { useAuthStore } from "@/lib/stores/auth-store";
-import { ApiError } from "@/lib/types/api";
 import { zodFieldErrors } from "@/lib/utils/form-errors";
-import { customerLoginSchema } from "@/lib/validators/customer-auth";
+import { adminResetSchema } from "@/lib/validators/admin-auth";
 
-export function LoginForm() {
+export function AdminResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const setCustomerSession = useAuthStore((s) => s.setCustomerSession);
   const rateLimit = useRateLimit();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [alert, setAlert] = useState<{
@@ -39,9 +36,11 @@ export function LoginForm() {
     }
 
     const form = new FormData(e.currentTarget);
-    const parsed = customerLoginSchema.safeParse({
-      username: form.get("username"),
+    const parsed = adminResetSchema.safeParse({
+      email: form.get("email"),
+      token: form.get("token"),
       password: form.get("password"),
+      password_confirmation: form.get("password_confirmation"),
     });
     if (!parsed.success) {
       setErrors(zodFieldErrors(parsed.error));
@@ -50,20 +49,17 @@ export function LoginForm() {
 
     setPending(true);
     try {
-      const data = await customerLogin(parsed.data);
-      setCustomerSession(data);
-      router.push(searchParams.get("next") || "/dashboard");
+      const message = await adminResetPassword(parsed.data);
+      setAlert({ variant: "success", title: message });
+      router.push("/admin/login");
     } catch (error) {
-      const limited = rateLimit.applyFromError(error);
+      rateLimit.applyFromError(error);
       const formatted = formatApiError(error);
       setAlert({
         variant: "error",
         title: formatted.message,
         items: formatted.errors,
       });
-      if (!limited && !(error instanceof ApiError && error.status === 429)) {
-        rateLimit.lockFor(2);
-      }
     } finally {
       setPending(false);
     }
@@ -75,46 +71,49 @@ export function LoginForm() {
         <Alert variant={alert.variant} title={alert.title} items={alert.items} />
       ) : null}
       {rateLimit.isLimited ? (
-        <Alert variant="warning" title={`Please wait ${rateLimit.secondsLeft}s before trying again`} />
+        <Alert variant="warning" title={`Rate limited · wait ${rateLimit.secondsLeft}s`} />
       ) : null}
 
       <form onSubmit={onSubmit} className="space-y-4">
         <Input
-          name="username"
-          label="Username or email"
-          placeholder="you@example.com"
-          autoComplete="username"
-          error={errors.username}
+          name="email"
+          type="email"
+          label="Email"
+          defaultValue={searchParams.get("email") ?? ""}
+          error={errors.email}
+        />
+        <Input
+          name="token"
+          label="Verification code"
+          defaultValue={searchParams.get("token") ?? ""}
+          error={errors.token}
         />
         <Input
           name="password"
           type="password"
-          label="Password"
-          placeholder="••••••••"
-          autoComplete="current-password"
+          label="New password"
+          autoComplete="new-password"
           error={errors.password}
+        />
+        <Input
+          name="password_confirmation"
+          type="password"
+          label="Confirm password"
+          autoComplete="new-password"
+          error={errors.password_confirmation}
         />
         <Button
           type="submit"
           className="w-full"
           disabled={pending || rateLimit.isLimited}
         >
-          {pending ? "Signing in…" : "Sign in"}
+          {pending ? "Updating…" : "Reset password"}
         </Button>
       </form>
 
-      <div className="flex flex-col gap-2 text-sm text-muted sm:flex-row sm:justify-between">
-        <Link href="/forgot-password" className="hover:text-foreground">
-          Forgot password?
-        </Link>
-        <Link href="/register" className="hover:text-foreground">
-          Create an account
-        </Link>
-      </div>
-      <p className="text-center text-xs text-muted">
-        Admin?{" "}
-        <Link href="/admin/login" className="text-brand hover:underline">
-          Go to admin sign in
+      <p className="text-center text-sm text-muted">
+        <Link href="/admin/login" className="hover:text-foreground">
+          Back to admin sign in
         </Link>
       </p>
     </div>

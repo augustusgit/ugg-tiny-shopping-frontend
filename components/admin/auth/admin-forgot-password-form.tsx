@@ -7,19 +7,19 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  customerSendResetCode,
-  customerVerifyResetCode,
-} from "@/lib/api/customer-auth";
+  adminSendResetCode,
+  adminVerifyResetCode,
+} from "@/lib/api/admin-auth";
 import { formatApiError, useRateLimit } from "@/lib/hooks/use-rate-limit";
 import { zodFieldErrors } from "@/lib/utils/form-errors";
 import {
-  customerForgotSchema,
-  customerVerifyCodeSchema,
-} from "@/lib/validators/customer-auth";
+  adminForgotSchema,
+  adminVerifyCodeSchema,
+} from "@/lib/validators/admin-auth";
 
 type Step = "request" | "verify";
 
-export function ForgotPasswordForm() {
+export function AdminForgotPasswordForm() {
   const router = useRouter();
   const rateLimit = useRateLimit();
   const [step, setStep] = useState<Step>("request");
@@ -45,7 +45,7 @@ export function ForgotPasswordForm() {
     }
 
     const form = new FormData(e.currentTarget);
-    const parsed = customerForgotSchema.safeParse({ value: form.get("value") });
+    const parsed = adminForgotSchema.safeParse({ value: form.get("value") });
     if (!parsed.success) {
       setErrors(zodFieldErrors(parsed.error));
       return;
@@ -53,7 +53,7 @@ export function ForgotPasswordForm() {
 
     setPending(true);
     try {
-      const data = await customerSendResetCode(parsed.data.value);
+      const data = await adminSendResetCode(parsed.data.value);
       if (data.email) setEmail(data.email);
       setStep("verify");
       setAlert({
@@ -92,7 +92,7 @@ export function ForgotPasswordForm() {
     }
 
     const form = new FormData(e.currentTarget);
-    const parsed = customerVerifyCodeSchema.safeParse({
+    const parsed = adminVerifyCodeSchema.safeParse({
       email: form.get("email") || email,
       code: form.get("code"),
     });
@@ -103,10 +103,10 @@ export function ForgotPasswordForm() {
 
     setPending(true);
     try {
-      const message = await customerVerifyResetCode(parsed.data);
+      const message = await adminVerifyResetCode(parsed.data);
       setAlert({ variant: "success", title: message });
       router.push(
-        `/reset-password?email=${encodeURIComponent(parsed.data.email)}&token=${encodeURIComponent(parsed.data.code)}`,
+        `/admin/reset-password?email=${encodeURIComponent(parsed.data.email)}&token=${encodeURIComponent(parsed.data.code)}`,
       );
     } catch (error) {
       rateLimit.applyFromError(error);
@@ -135,7 +135,7 @@ export function ForgotPasswordForm() {
           <Input
             name="value"
             label="Email or username"
-            placeholder="you@example.com"
+            placeholder="admin@example.com"
             error={errors.value}
           />
           <Button
@@ -181,8 +181,8 @@ export function ForgotPasswordForm() {
       )}
 
       <p className="text-center text-sm text-muted">
-        <Link href="/login" className="hover:text-foreground">
-          Back to sign in
+        <Link href="/admin/login" className="hover:text-foreground">
+          Back to admin sign in
         </Link>
       </p>
     </div>

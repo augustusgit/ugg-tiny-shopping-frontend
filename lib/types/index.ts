@@ -30,10 +30,6 @@ export interface AuthResponse {
   token: string;
 }
 
-export interface ApiError {
-  message: string;
-  errors?: Record<string, string[]>;
-}
 
 export interface ProductInput {
   name: string;

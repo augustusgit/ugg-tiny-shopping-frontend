@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthCard } from "@/components/auth/auth-card";
-import { LoginForm } from "@/components/auth/login-form";
+import { AdminResetPasswordForm } from "@/components/admin/auth/admin-reset-password-form";
 import { Spinner } from "@/components/ui/spinner";
 
 export const metadata: Metadata = {
-  title: "Sign in",
+  title: "Admin reset password",
 };
 
-export default function LoginPage() {
+export default function AdminResetPasswordPage() {
   return (
     <AuthCard
-      title="Customer sign in"
-      subtitle="Access your Tiny Store dashboard."
+      title="Set new admin password"
+      subtitle="Use the verified code with your email to finish the reset."
     >
       <Suspense
         fallback={
@@ -21,7 +21,7 @@ export default function LoginPage() {
           </div>
         }
       >
-        <LoginForm />
+        <AdminResetPasswordForm />
       </Suspense>
     </AuthCard>
   );

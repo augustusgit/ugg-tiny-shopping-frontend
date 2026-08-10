@@ -6,24 +6,25 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  customerSendResetCode,
-  customerVerifyResetCode,
-} from "@/lib/api/customer-auth";
+import { adminLogin, adminVerifyLogin } from "@/lib/api/admin-auth";
 import { formatApiError, useRateLimit } from "@/lib/hooks/use-rate-limit";
+import { useAuthStore } from "@/lib/stores/auth-store";
 import { zodFieldErrors } from "@/lib/utils/form-errors";
 import {
-  customerForgotSchema,
-  customerVerifyCodeSchema,
-} from "@/lib/validators/customer-auth";
+  adminLoginCodeSchema,
+  adminLoginCredentialsSchema,
+} from "@/lib/validators/admin-auth";
 
-type Step = "request" | "verify";
+type Step = "credentials" | "otp";
 
-export function ForgotPasswordForm() {
+export function AdminLoginForm() {
   const router = useRouter();
+  const setAdminSession = useAuthStore((s) => s.setAdminSession);
   const rateLimit = useRateLimit();
-  const [step, setStep] = useState<Step>("request");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<Step>("credentials");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailHint, setEmailHint] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [alert, setAlert] = useState<{
     variant: "error" | "success" | "info" | "warning";
@@ -32,7 +33,7 @@ export function ForgotPasswordForm() {
   } | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function requestCode(e: React.FormEvent<HTMLFormElement>) {
+  async function submitCredentials(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setAlert(null);
     setErrors({});
@@ -44,8 +45,10 @@ export function ForgotPasswordForm() {
       return;
     }
 
-    const form = new FormData(e.currentTarget);
-    const parsed = customerForgotSchema.safeParse({ value: form.get("value") });
+    const parsed = adminLoginCredentialsSchema.safeParse({
+      username,
+      password,
+    });
     if (!parsed.success) {
       setErrors(zodFieldErrors(parsed.error));
       return;
@@ -53,17 +56,15 @@ export function ForgotPasswordForm() {
 
     setPending(true);
     try {
-      const data = await customerSendResetCode(parsed.data.value);
-      if (data.email) setEmail(data.email);
-      setStep("verify");
+      const data = await adminVerifyLogin(parsed.data);
+      setEmailHint(data.email);
+      setStep("otp");
       setAlert({
         variant: "success",
-        title: "If the account exists, a verification code has been sent",
+        title: "Verification code sent",
         items: [
-          ...(data.email
-            ? [`Use the code sent to ${data.email} to continue.`]
-            : []),
-          "Request another code after about 60 seconds if needed.",
+          `Check the inbox for ${data.email}. Enter the 6-digit code to finish signing in.`,
+          "You can request another code after about 60 seconds if needed.",
         ],
       });
     } catch (error) {
@@ -79,7 +80,7 @@ export function ForgotPasswordForm() {
     }
   }
 
-  async function verifyCode(e: React.FormEvent<HTMLFormElement>) {
+  async function submitOtp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setAlert(null);
     setErrors({});
@@ -92,8 +93,7 @@ export function ForgotPasswordForm() {
     }
 
     const form = new FormData(e.currentTarget);
-    const parsed = customerVerifyCodeSchema.safeParse({
-      email: form.get("email") || email,
+    const parsed = adminLoginCodeSchema.safeParse({
       code: form.get("code"),
     });
     if (!parsed.success) {
@@ -103,11 +103,13 @@ export function ForgotPasswordForm() {
 
     setPending(true);
     try {
-      const message = await customerVerifyResetCode(parsed.data);
-      setAlert({ variant: "success", title: message });
-      router.push(
-        `/reset-password?email=${encodeURIComponent(parsed.data.email)}&token=${encodeURIComponent(parsed.data.code)}`,
-      );
+      const data = await adminLogin({
+        username,
+        password,
+        code: parsed.data.code,
+      });
+      setAdminSession(data);
+      router.push("/admin");
     } catch (error) {
       rateLimit.applyFromError(error);
       const formatted = formatApiError(error);
@@ -130,36 +132,50 @@ export function ForgotPasswordForm() {
         <Alert variant="warning" title={`Rate limited · wait ${rateLimit.secondsLeft}s`} />
       ) : null}
 
-      {step === "request" ? (
-        <form onSubmit={requestCode} className="space-y-4">
+      {step === "credentials" ? (
+        <form onSubmit={submitCredentials} className="space-y-4">
           <Input
-            name="value"
-            label="Email or username"
-            placeholder="you@example.com"
-            error={errors.value}
+            name="username"
+            label="Username or email"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+            error={errors.username}
+          />
+          <Input
+            name="password"
+            type="password"
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            error={errors.password}
           />
           <Button
             type="submit"
             className="w-full"
             disabled={pending || rateLimit.isLimited}
           >
-            {pending ? "Sending…" : "Send reset code"}
+            {pending ? "Sending code…" : "Continue"}
           </Button>
         </form>
       ) : (
-        <form onSubmit={verifyCode} className="space-y-4">
-          <Input
-            name="email"
-            type="email"
-            label="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={errors.email}
-          />
+        <form onSubmit={submitOtp} className="space-y-4">
+          <p className="text-sm text-muted">
+            Signing in as <strong className="text-foreground">{username}</strong>
+            {emailHint ? (
+              <>
+                {" "}
+                · code sent to{" "}
+                <strong className="text-foreground">{emailHint}</strong>
+              </>
+            ) : null}
+          </p>
           <Input
             name="code"
             label="Verification code"
             placeholder="6-digit code"
+            autoComplete="one-time-code"
             error={errors.code}
           />
           <Button
@@ -167,24 +183,30 @@ export function ForgotPasswordForm() {
             className="w-full"
             disabled={pending || rateLimit.isLimited}
           >
-            {pending ? "Verifying…" : "Verify code"}
+            {pending ? "Verifying…" : "Sign in to admin"}
           </Button>
           <Button
             type="button"
             variant="secondary"
             className="w-full"
-            onClick={() => setStep("request")}
+            onClick={() => {
+              setStep("credentials");
+              setAlert(null);
+            }}
           >
             Back
           </Button>
         </form>
       )}
 
-      <p className="text-center text-sm text-muted">
-        <Link href="/login" className="hover:text-foreground">
-          Back to sign in
+      <div className="flex flex-col gap-2 text-sm text-muted sm:flex-row sm:justify-between">
+        <Link href="/admin/forgot-password" className="hover:text-foreground">
+          Forgot password?
         </Link>
-      </p>
+        <Link href="/login" className="hover:text-foreground">
+          Customer sign in
+        </Link>
+      </div>
     </div>
   );
 }

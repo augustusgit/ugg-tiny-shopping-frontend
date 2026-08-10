@@ -1,4 +1,3 @@
-import { apiFetch, USE_MOCK } from "@/lib/api/client";
 import {
   mockCreateProduct,
   mockDeleteProduct,
@@ -6,23 +5,19 @@ import {
   mockListUsers,
   mockUpdateProduct,
 } from "@/lib/mock/handlers";
-import type { Product, ProductInput, User } from "@/lib/types";
+import type { ProductInput, User } from "@/lib/types";
 
+/** Admin catalog/users list stays on mock until Laravel admin product APIs are wired. */
 export async function adminListProducts(token?: string | null) {
-  if (USE_MOCK) return mockListProducts();
-  return apiFetch<Product[]>("/admin/products", { token });
+  void token;
+  return mockListProducts();
 }
 
 export async function adminCreateProduct(
   token: string | null | undefined,
   input: ProductInput,
 ) {
-  if (USE_MOCK) return mockCreateProduct(token, input);
-  return apiFetch<Product>("/admin/products", {
-    method: "POST",
-    token,
-    body: JSON.stringify(input),
-  });
+  return mockCreateProduct(token, input);
 }
 
 export async function adminUpdateProduct(
@@ -30,26 +25,16 @@ export async function adminUpdateProduct(
   id: string,
   input: ProductInput,
 ) {
-  if (USE_MOCK) return mockUpdateProduct(token, id, input);
-  return apiFetch<Product>(`/admin/products/${id}`, {
-    method: "PUT",
-    token,
-    body: JSON.stringify(input),
-  });
+  return mockUpdateProduct(token, id, input);
 }
 
 export async function adminDeleteProduct(
   token: string | null | undefined,
   id: string,
 ) {
-  if (USE_MOCK) return mockDeleteProduct(token, id);
-  return apiFetch<void>(`/admin/products/${id}`, {
-    method: "DELETE",
-    token,
-  });
+  return mockDeleteProduct(token, id);
 }
 
-export async function adminListUsers(token?: string | null) {
-  if (USE_MOCK) return mockListUsers(token);
-  return apiFetch<User[]>("/admin/users", { token });
+export async function adminListUsers(token?: string | null): Promise<User[]> {
+  return mockListUsers(token);
 }

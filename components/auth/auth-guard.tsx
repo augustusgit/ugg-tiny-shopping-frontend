@@ -20,7 +20,7 @@ export function AuthGuard({
   useEffect(() => {
     if (!hydrated) return;
     if (!user) {
-      router.replace(`/login?next=${role === "admin" ? "/admin" : "/dashboard"}`);
+      router.replace(role === "admin" ? "/admin/login" : "/login");
       return;
     }
     if (user.role !== role) {

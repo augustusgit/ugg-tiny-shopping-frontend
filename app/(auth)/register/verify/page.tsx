@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AuthCard } from "@/components/auth/auth-card";
-import { LoginForm } from "@/components/auth/login-form";
+import { RegisterVerifyForm } from "@/components/auth/register-verify-form";
 import { Spinner } from "@/components/ui/spinner";
 
 export const metadata: Metadata = {
-  title: "Sign in",
+  title: "Verify registration",
 };
 
-export default function LoginPage() {
+export default function RegisterVerifyPage() {
   return (
     <AuthCard
-      title="Customer sign in"
-      subtitle="Access your Tiny Store dashboard."
+      title="Verify your account"
+      subtitle="Enter the email and mobile codes sent after registration."
     >
       <Suspense
         fallback={
@@ -21,7 +21,7 @@ export default function LoginPage() {
           </div>
         }
       >
-        <LoginForm />
+        <RegisterVerifyForm />
       </Suspense>
     </AuthCard>
   );

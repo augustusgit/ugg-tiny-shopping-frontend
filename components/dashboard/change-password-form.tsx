@@ -1,24 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { changePassword } from "@/lib/api/user";
-import { useAuthStore } from "@/lib/stores/auth-store";
+import { zodFieldErrors } from "@/lib/utils/form-errors";
 import { changePasswordSchema } from "@/lib/validators/auth";
 
 export function ChangePasswordForm() {
-  const token = useAuthStore((s) => s.token);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [alert, setAlert] = useState<{
+    variant: "error" | "success" | "info";
+    title: string;
+  } | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErrors({});
-    setFormError("");
-    setSuccess("");
+    setAlert(null);
     const formEl = e.currentTarget;
     const form = new FormData(formEl);
     const parsed = changePasswordSchema.safeParse({
@@ -27,25 +27,18 @@ export function ChangePasswordForm() {
       confirmPassword: form.get("confirmPassword"),
     });
     if (!parsed.success) {
-      const fieldErrors: Record<string, string> = {};
-      parsed.error.issues.forEach((issue) => {
-        const key = String(issue.path[0] ?? "form");
-        fieldErrors[key] = issue.message;
-      });
-      setErrors(fieldErrors);
+      setErrors(zodFieldErrors(parsed.error));
       return;
     }
 
     setPending(true);
     try {
-      await changePassword(token, {
-        currentPassword: parsed.data.currentPassword,
-        password: parsed.data.password,
+      setAlert({
+        variant: "info",
+        title:
+          "Use Forgot password to change credentials against the Laravel API for now.",
       });
-      setSuccess("Password changed");
       formEl.reset();
-    } catch (err) {
-      setFormError((err as Error).message);
     } finally {
       setPending(false);
     }
@@ -53,6 +46,7 @@ export function ChangePasswordForm() {
 
   return (
     <form onSubmit={onSubmit} className="max-w-md space-y-4">
+      {alert ? <Alert variant={alert.variant} title={alert.title} /> : null}
       <Input
         name="currentPassword"
         type="password"
@@ -74,8 +68,6 @@ export function ChangePasswordForm() {
         autoComplete="new-password"
         error={errors.confirmPassword}
       />
-      {formError ? <p className="text-sm text-danger">{formError}</p> : null}
-      {success ? <p className="text-sm text-brand">{success}</p> : null}
       <Button type="submit" disabled={pending}>
         {pending ? "Updating…" : "Change password"}
       </Button>

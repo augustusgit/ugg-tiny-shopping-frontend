@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 export default function RegisterPage() {
   return (
     <AuthCard
-      title="Create account"
-      subtitle="User registration only — admins are provisioned separately."
+      title="Create customer account"
+      subtitle="Register, then verify email and mobile codes to activate."
     >
       <RegisterForm />
     </AuthCard>

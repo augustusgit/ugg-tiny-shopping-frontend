@@ -1,13 +1,26 @@
 # Tiny Store
 
-Frontend ecommerce UI with storefront, user dashboard, and admin panel. Data currently comes from an in-browser mock API (localStorage-backed) shaped like future Laravel REST endpoints.
+Frontend ecommerce UI with storefront, customer dashboard, and admin panel.
+
+Authentication talks to the Laravel backend. Catalog CRUD still uses a local mock until product APIs are wired.
 
 ## Stack
 
 - Next.js 16 (App Router) + React 19 + Tailwind CSS 4
 - Zustand (auth session)
-- TanStack React Query (products / admin data)
+- TanStack React Query (catalog data)
 - Zod (form validation)
+
+## Environment
+
+Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_APP_ACCESS_KEY=73647874537947434
+```
+
+`x-access-key` must match Laravel `APP_ACCESS_KEY`.
 
 ## Getting started
 
@@ -18,29 +31,31 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Demo credentials
+## Auth routes
 
-| Role  | Email                 | Password  |
-|-------|-----------------------|-----------|
-| Admin | `admin@tinystore.com` | `admin123` |
-| User  | `user@tinystore.com`  | `user123`  |
+| Realm    | Paths |
+|----------|-------|
+| Customer | `/login`, `/register`, `/register/verify`, `/forgot-password`, `/reset-password` |
+| Admin    | `/admin/login`, `/admin/forgot-password`, `/admin/reset-password` |
 
-- Users can register at `/register`.
-- Password reset is demo-only: `/forgot-password` returns a token (no email).
+### Customer API
 
-## Routes
+- `POST /customer/login` `{ username, password }`
+- `POST /customer/register` + verify/resend
+- `POST /customer/password/email|verify-code|reset`
+
+### Admin API
+
+- `POST /admin/login/verify` `{ username, password }` → OTP email
+- `POST /admin/login` `{ username, password, code }`
+- `POST /admin/password/email|verify-code|reset`
+
+Laravel rate limits (`password-email`, `password-verify`, `password-reset`) return HTTP `429` with `Retry-After`. The UI surfaces countdown alerts and disables submit while limited.
+
+## Other routes
 
 | Area       | Paths |
 |------------|-------|
 | Storefront | `/`, `/products/[id]` |
-| Auth       | `/login`, `/register`, `/forgot-password`, `/reset-password` |
-| User       | `/dashboard`, `/dashboard/profile`, `/dashboard/security` |
-| Admin      | `/admin`, `/admin/products`, `/admin/products/new`, `/admin/products/[id]/edit`, `/admin/users` |
-
-## Swapping to Laravel later
-
-1. Set `NEXT_PUBLIC_API_URL` to your Laravel API base (e.g. `http://localhost:8000/api`).
-2. Keep the helpers in `lib/api/*` — they already branch on mock vs real `fetch`.
-3. Match the mock contract: auth, products, admin products CRUD, admin users, user profile / change-password.
-
-Mock handlers live in `lib/mock/handlers.ts`. Seed data is in `lib/mock/seed.ts`.
+| Customer   | `/dashboard`, `/dashboard/profile`, `/dashboard/security` |
+| Admin panel| `/admin`, `/admin/products`, `/admin/products/new`, `/admin/products/[id]/edit`, `/admin/users` |

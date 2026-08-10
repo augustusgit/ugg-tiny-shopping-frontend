@@ -6,12 +6,15 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { customerResetPassword } from "@/lib/api/customer-auth";
+import {
+  customerResendVerification,
+  customerVerifyRegistration,
+} from "@/lib/api/customer-auth";
 import { formatApiError, useRateLimit } from "@/lib/hooks/use-rate-limit";
 import { zodFieldErrors } from "@/lib/utils/form-errors";
-import { customerResetSchema } from "@/lib/validators/customer-auth";
+import { customerVerifyRegisterSchema } from "@/lib/validators/customer-auth";
 
-export function ResetPasswordForm() {
+export function RegisterVerifyForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rateLimit = useRateLimit();
@@ -22,6 +25,7 @@ export function ResetPasswordForm() {
     items?: string[];
   } | null>(null);
   const [pending, setPending] = useState(false);
+  const [resending, setResending] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,11 +40,10 @@ export function ResetPasswordForm() {
     }
 
     const form = new FormData(e.currentTarget);
-    const parsed = customerResetSchema.safeParse({
+    const parsed = customerVerifyRegisterSchema.safeParse({
       email: form.get("email"),
-      token: form.get("token"),
-      password: form.get("password"),
-      password_confirmation: form.get("password_confirmation"),
+      code: form.get("code"),
+      mobile_code: form.get("mobile_code"),
     });
     if (!parsed.success) {
       setErrors(zodFieldErrors(parsed.error));
@@ -49,9 +52,9 @@ export function ResetPasswordForm() {
 
     setPending(true);
     try {
-      const message = await customerResetPassword(parsed.data);
+      const message = await customerVerifyRegistration(parsed.data);
       setAlert({ variant: "success", title: message });
-      router.push("/login");
+      router.push("/dashboard");
     } catch (error) {
       rateLimit.applyFromError(error);
       const formatted = formatApiError(error);
@@ -62,6 +65,45 @@ export function ResetPasswordForm() {
       });
     } finally {
       setPending(false);
+    }
+  }
+
+  async function resend() {
+    setAlert(null);
+    if (rateLimit.isLimited) {
+      setAlert({
+        variant: "warning",
+        title: `Too many attempts. Retry in ${rateLimit.secondsLeft}s.`,
+      });
+      return;
+    }
+    const email = searchParams.get("email");
+    if (!email) {
+      setAlert({ variant: "error", title: "Email is required to resend codes." });
+      return;
+    }
+    setResending(true);
+    try {
+      const data = await customerResendVerification({
+        email,
+        mobile: searchParams.get("mobile") || undefined,
+      });
+      setAlert({
+        variant: "success",
+        title: "Verification code sent to email and phone number",
+        items: [`Codes resent for ${data.email}`],
+      });
+      rateLimit.lockFor(60);
+    } catch (error) {
+      rateLimit.applyFromError(error);
+      const formatted = formatApiError(error);
+      setAlert({
+        variant: "error",
+        title: formatted.message,
+        items: formatted.errors,
+      });
+    } finally {
+      setResending(false);
     }
   }
 
@@ -83,33 +125,35 @@ export function ResetPasswordForm() {
           error={errors.email}
         />
         <Input
-          name="token"
-          label="Verification code"
-          defaultValue={searchParams.get("token") ?? ""}
-          error={errors.token}
+          name="code"
+          label="Email verification code"
+          placeholder="6-digit email code"
+          error={errors.code}
         />
         <Input
-          name="password"
-          type="password"
-          label="New password"
-          autoComplete="new-password"
-          error={errors.password}
-        />
-        <Input
-          name="password_confirmation"
-          type="password"
-          label="Confirm password"
-          autoComplete="new-password"
-          error={errors.password_confirmation}
+          name="mobile_code"
+          label="Mobile verification code"
+          placeholder="6-digit SMS code"
+          error={errors.mobile_code}
         />
         <Button
           type="submit"
           className="w-full"
           disabled={pending || rateLimit.isLimited}
         >
-          {pending ? "Updating…" : "Reset password"}
+          {pending ? "Verifying…" : "Verify account"}
         </Button>
       </form>
+
+      <Button
+        type="button"
+        variant="secondary"
+        className="w-full"
+        disabled={resending || rateLimit.isLimited}
+        onClick={resend}
+      >
+        {resending ? "Resending…" : "Resend codes"}
+      </Button>
 
       <p className="text-center text-sm text-muted">
         <Link href="/login" className="hover:text-foreground">

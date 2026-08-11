@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
-import { CustomersManager } from "@/components/admin/accounts/customers-manager";
+import { CustomerForm } from "@/components/admin/accounts/customer-form";
 
 export const metadata: Metadata = {
-  title: "Manage users",
+  title: "New user",
 };
 
-export default function AdminUsersPage() {
+export default function NewUserPage() {
   return (
     <div className="animate-fade-up space-y-6">
       <div>
         <h1 className="font-[family-name:var(--font-fraunces)] text-3xl">
-          Users
+          New user
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Manage customer accounts, bans, verification, and roles.
+          Create a customer account from the admin panel.
         </p>
       </div>
-      <CustomersManager />
+      <CustomerForm />
     </div>
   );
 }

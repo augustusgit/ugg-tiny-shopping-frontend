@@ -113,3 +113,78 @@ export async function apiMessage(
 
   return body.message || "Success";
 }
+
+export interface ApiListResult<T> {
+  items: T[];
+  total: number;
+  message: string;
+}
+
+function unwrapListData<T>(data: unknown): T[] {
+  if (Array.isArray(data)) return data as T[];
+  if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as { data?: unknown }).data)
+  ) {
+    return (data as { data: T[] }).data;
+  }
+  return [];
+}
+
+/** List endpoints that return `{ status, message, total, data }`. */
+export async function apiList<T>(
+  path: string,
+  options: RequestInit & { token?: string | null } = {},
+): Promise<ApiListResult<T>> {
+  const { token, headers, ...rest } = options;
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...rest,
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      "x-access-key": APP_ACCESS_KEY,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...headers,
+    },
+  });
+
+  const body = (await response.json().catch(() => ({
+    status: 0,
+    message: "Unexpected server response",
+  }))) as ApiEnvelope;
+
+  if (response.status === 429) {
+    throw new ApiError(body.message || "Too many attempts. Please try again later.", {
+      status: 429,
+      retryAfter: parseRetryAfter(response, body),
+    });
+  }
+
+  if (!response.ok || body.status === 0) {
+    throw new ApiError(body.message || "Request failed", {
+      status: response.status,
+      errors: normalizeErrors(body.data),
+      retryAfter: parseRetryAfter(response, body),
+    });
+  }
+
+  const items = unwrapListData<T>(body.data);
+  return {
+    items,
+    total: typeof body.total === "number" ? body.total : items.length,
+    message: body.message || "success",
+  };
+}
+
+export function toQueryString(
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") return;
+    search.set(key, String(value));
+  });
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
+}

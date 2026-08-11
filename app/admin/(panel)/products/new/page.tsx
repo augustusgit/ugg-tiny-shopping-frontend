@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ProductForm } from "@/components/admin/product-form";
+import { ProductWizard } from "@/components/admin/products/product-wizard";
 
 export const metadata: Metadata = {
   title: "New product",
@@ -10,13 +10,13 @@ export default function NewProductPage() {
     <div className="animate-fade-up space-y-6">
       <div>
         <h1 className="font-[family-name:var(--font-fraunces)] text-3xl">
-          New product
+          Product creation wizard
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Add an item to the Tiny Store catalog.
+          Step 1: product basics → Step 2: inventories → Step 3: review & submit.
         </p>
       </div>
-      <ProductForm />
+      <ProductWizard />
     </div>
   );
 }

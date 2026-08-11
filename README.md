@@ -58,4 +58,17 @@ Laravel rate limits (`password-email`, `password-verify`, `password-reset`) retu
 |------------|-------|
 | Storefront | `/`, `/products/[id]` |
 | Customer   | `/dashboard`, `/dashboard/profile`, `/dashboard/security` |
-| Admin panel| `/admin`, `/admin/products`, `/admin/products/new`, `/admin/products/[id]/edit`, `/admin/users` |
+| Admin panel| `/admin`, `/admin/admins…`, `/admin/users…`, `/admin/products`, `/admin/products/new` (wizard), `/admin/products/[id]`, `/admin/products/[id]/wizard` |
+
+### Admin account APIs
+
+- `GET/POST /admin/admins`, `GET/PUT/DELETE /admin/admins/{id}`
+- `POST /admin/admins/{id}/restore|reset-password|verify-email|verify-phone|roles`
+- `DELETE /admin/admins/{id}/force`, `GET /admin/admins/stats`
+- Same shape under `/admin/users` plus `toggle-status`, `ban`, `unban`
+
+### Admin product APIs
+
+- Wizard: `POST /admin/products/wizard/step-1`, `PUT …/{id}/step-1`, `POST …/{id}/step-2`, `GET …/{id}/step-3`, `POST …/{id}/submit`, `GET …/{id}/progress`
+- Catalog: `GET/PUT/DELETE /admin/products/{id}`, stats, restore, force, toggle-status, duplicate
+- Inventories: `POST/PUT/DELETE /admin/products/{id}/inventories[/{inventory}]`

@@ -1,22 +1,22 @@
 import type { Metadata } from "next";
-import { CustomersManager } from "@/components/admin/accounts/customers-manager";
+import { AdminForm } from "@/components/admin/accounts/admin-form";
 
 export const metadata: Metadata = {
-  title: "Manage users",
+  title: "New admin",
 };
 
-export default function AdminUsersPage() {
+export default function NewAdminPage() {
   return (
     <div className="animate-fade-up space-y-6">
       <div>
         <h1 className="font-[family-name:var(--font-fraunces)] text-3xl">
-          Users
+          New admin
         </h1>
         <p className="mt-2 text-sm text-muted">
-          Manage customer accounts, bans, verification, and roles.
+          Provision an admin with optional verification flags.
         </p>
       </div>
-      <CustomersManager />
+      <AdminForm />
     </div>
   );
 }

@@ -61,11 +61,3 @@ export function useDeleteProduct() {
   });
 }
 
-export function useAdminUsers() {
-  const token = useAuthStore((s) => s.token);
-  return useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: () => adminApi.adminListUsers(token),
-    enabled: Boolean(token),
-  });
-}

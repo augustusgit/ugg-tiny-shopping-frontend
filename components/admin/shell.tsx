@@ -7,6 +7,7 @@ import {
   LogOut,
   Menu,
   Package,
+  Shield,
   Users,
   X,
 } from "lucide-react";
@@ -17,8 +18,9 @@ import { useUiStore } from "@/lib/stores/ui-store";
 
 const links = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/products", label: "Products", icon: Package },
+  { href: "/admin/admins", label: "Admins", icon: Shield },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/products", label: "Products", icon: Package },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {

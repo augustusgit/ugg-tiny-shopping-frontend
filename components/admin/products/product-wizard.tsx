@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { HybridApprovalPanel } from "@/components/admin/approvals/hybrid-approval-panel";
 import {
   InventoryFields,
   draftToInventoryPayload,
@@ -122,6 +123,9 @@ function ProductWizardInner({
   );
   const [reviewLoaded, setReviewLoaded] = useState(
     Boolean(initial?.product.step_two_completed_at && initialStep(initial.product) === 3),
+  );
+  const [approvalRequestId, setApprovalRequestId] = useState<number | null>(
+    null,
   );
 
   const pending =
@@ -324,6 +328,17 @@ function ProductWizardInner({
       return;
     }
 
+    if (publish && !approvalRequestId) {
+      setFlash({
+        variant: "warning",
+        title: "Hybrid approval required",
+        items: [
+          "Grant on-chain permission, then Sign approval & decide before publishing.",
+        ],
+      });
+      return;
+    }
+
     const parsed = submitWizardSchema.safeParse({
       publish,
       meta_title: metaTitle,
@@ -341,7 +356,12 @@ function ProductWizardInner({
     try {
       const result = await wizard.submit.mutateAsync({
         productId: product.id,
-        input: omitEmpty({ ...parsed.data }) as typeof parsed.data,
+        input: omitEmpty({
+          ...parsed.data,
+          ...(publish && approvalRequestId
+            ? { approval_request_id: approvalRequestId }
+            : {}),
+        }) as typeof parsed.data & { approval_request_id?: number },
       });
       setProduct(result.product);
       setProgress(result.progress);
@@ -613,10 +633,31 @@ function ProductWizardInner({
             <input
               type="checkbox"
               checked={publish}
-              onChange={(e) => setPublish(e.target.checked)}
+              onChange={(e) => {
+                setPublish(e.target.checked);
+                if (!e.target.checked) {
+                  setApprovalRequestId(null);
+                }
+              }}
             />
             Publish immediately (unchecked = submit for review)
           </label>
+
+          {product ? (
+            <HybridApprovalPanel
+              productId={product.id}
+              enabled={publish}
+              onApproved={(id) => {
+                setApprovalRequestId(id);
+                setFlash({
+                  variant: "success",
+                  title: "Hybrid approval ready",
+                  items: [`Approval request #${id} can be used to publish.`],
+                });
+              }}
+              onCleared={() => setApprovalRequestId(null)}
+            />
+          ) : null}
 
           <div className="flex flex-wrap gap-3">
             <Button type="button" variant="ghost" onClick={() => setStep(2)}>
@@ -632,7 +673,11 @@ function ProductWizardInner({
             </Button>
             <Button
               type="submit"
-              disabled={pending || !product?.step_two_completed_at}
+              disabled={
+                pending ||
+                !product?.step_two_completed_at ||
+                (publish && !approvalRequestId)
+              }
             >
               {pending
                 ? "Submitting…"

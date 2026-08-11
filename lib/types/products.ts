@@ -202,6 +202,7 @@ export interface SubmitWizardInput {
   publish?: boolean;
   meta_title?: string;
   meta_description?: string;
+  approval_request_id?: number;
 }
 
 export const INVENTORY_CONDITIONS = ["New", "Used", "Refurbished"] as const;

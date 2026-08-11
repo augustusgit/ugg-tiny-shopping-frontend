@@ -1,30 +1,36 @@
-import Image from "next/image";
 import Link from "next/link";
-import type { Product } from "@/lib/types";
+import { ProductVisual } from "@/components/store/product-visual";
+import { priceLabel, productHref } from "@/lib/api/catalog";
+import type { CatalogProduct } from "@/lib/types/catalog";
+import { isActiveFlag } from "@/lib/utils/empty";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product }: { product: CatalogProduct }) {
   return (
     <Link
-      href={`/products/${product.id}`}
+      href={productHref(product)}
       className="group flex flex-col gap-3 transition"
     >
-      <div className="relative aspect-[4/5] overflow-hidden rounded-md bg-brand-soft">
-        <Image
-          src={product.image}
-          alt={product.name}
-          fill
-          sizes="(max-width: 768px) 50vw, 25vw"
-          className="object-cover transition duration-500 group-hover:scale-[1.03]"
+      <div className="overflow-hidden transition duration-500 group-hover:scale-[1.02]">
+        <ProductVisual
+          name={product.name}
+          brand={product.brand}
+          featured={isActiveFlag(product.is_featured)}
         />
       </div>
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-[0.14em] text-muted">
-          {product.category}
+          {product.brand || "Tiny Store"}
         </p>
         <h3 className="font-[family-name:var(--font-fraunces)] text-xl leading-tight text-foreground">
           {product.name}
         </h3>
-        <p className="text-sm font-medium text-brand">${product.price.toFixed(2)}</p>
+        <p className="text-sm font-medium text-brand">{priceLabel(product)}</p>
+        {product.available_inventories_count != null ? (
+          <p className="text-xs text-muted">
+            {product.available_inventories_count} option
+            {product.available_inventories_count === 1 ? "" : "s"}
+          </p>
+        ) : null}
       </div>
     </Link>
   );

@@ -1,11 +1,14 @@
-import { mockGetProduct, mockListProducts } from "@/lib/mock/handlers";
-import type { Product } from "@/lib/types";
-
-/** Catalog still uses the local mock until Laravel product wiring is added. */
-export async function getProducts(): Promise<Product[]> {
-  return mockListProducts();
-}
-
-export async function getProduct(id: string): Promise<Product> {
-  return mockGetProduct(id);
-}
+/**
+ * Customer storefront catalog API.
+ * Prefer importing from `@/lib/api/catalog` in new code.
+ */
+export {
+  getCatalogProduct as getProduct,
+  listCatalogProducts as getProducts,
+  listFeaturedProducts,
+  listCatalogBrands,
+  getRelatedProducts,
+  productHref,
+  formatPrice,
+  priceLabel,
+} from "@/lib/api/catalog";

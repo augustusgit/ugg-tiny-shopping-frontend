@@ -72,3 +72,9 @@ Laravel rate limits (`password-email`, `password-verify`, `password-reset`) retu
 - Wizard: `POST /admin/products/wizard/step-1`, `PUT …/{id}/step-1`, `POST …/{id}/step-2`, `GET …/{id}/step-3`, `POST …/{id}/submit`, `GET …/{id}/progress`
 - Catalog: `GET/PUT/DELETE /admin/products/{id}`, stats, restore, force, toggle-status, duplicate
 - Inventories: `POST/PUT/DELETE /admin/products/{id}/inventories[/{inventory}]`
+
+### Customer catalog APIs
+
+- `GET /customer/products` (search, brand, featured, downloadable, in_stock, price, sort, page)
+- `GET /customer/products/featured`, `/brands`
+- `GET /customer/products/{id|slug}`, `…/inventories`, `…/related`

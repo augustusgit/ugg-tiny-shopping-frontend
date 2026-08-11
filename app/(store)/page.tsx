@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ProductGrid } from "@/components/store/product-grid";
+import { CatalogBrowser } from "@/components/store/catalog-browser";
+import { FeaturedStrip } from "@/components/store/featured-strip";
 
 export default function HomePage() {
   return (
@@ -17,8 +18,8 @@ export default function HomePage() {
             Everyday goods for quieter rooms.
           </h1>
           <p className="animate-fade-up stagger-2 mt-3 max-w-md text-base text-muted">
-            A focused catalog of home essentials — lamps, linen, ceramics, and
-            tools built for daily use.
+            Browse published catalog items from the live store — filter by brand,
+            price, and availability.
           </p>
           <div className="animate-fade-up stagger-3 mt-8">
             <Link
@@ -31,18 +32,18 @@ export default function HomePage() {
         </div>
       </section>
 
+      <FeaturedStrip />
+
       <section id="catalog" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-        <div className="mb-10 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="font-[family-name:var(--font-fraunces)] text-3xl text-foreground">
-              Catalog
-            </h2>
-            <p className="mt-2 text-sm text-muted">
-              Fresh stock from the mock storefront.
-            </p>
-          </div>
+        <div className="mb-10">
+          <h2 className="font-[family-name:var(--font-fraunces)] text-3xl text-foreground">
+            Catalog
+          </h2>
+          <p className="mt-2 text-sm text-muted">
+            Search, filter by brand or price, and open any item for options.
+          </p>
         </div>
-        <ProductGrid />
+        <CatalogBrowser />
       </section>
     </>
   );

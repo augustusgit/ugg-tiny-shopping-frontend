@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import { ProductDetail } from "@/components/store/product-detail";
 
-export const metadata: Metadata = {
-  title: "Product",
-};
+export async function generateMetadata({
+  params,
+}: PageProps<"/products/[id]">): Promise<Metadata> {
+  const { id } = await params;
+  return {
+    title: decodeURIComponent(id).replace(/-/g, " "),
+  };
+}
 
 export default async function ProductPage({
   params,
